@@ -1,0 +1,13 @@
+version: '2'
+services:
+  db:
+    image: postgres:10.4
+  web:
+    build: .
+    volumes:
+      - ./django_app:/django_app
+      - ./root_home:/root  # Preserve shell history, debugger settings
+    ports:
+      - "127.0.0.1:8010:8010"
+    depends_on:
+      - db
