@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 
 from rest_framework import serializers
 
@@ -47,7 +48,7 @@ class ArticleSerializer(serializers.Serializer):
     attributes = Attributes(source="*")
 
     class RelationShips(serializers.Serializer):
-        class AuthorRelationship(serializers.Serializer):
+        class Author(serializers.Serializer):
             class Links(serializers.Serializer):
                 self = serializers.SerializerMethodField()
 
@@ -66,17 +67,6 @@ class ArticleSerializer(serializers.Serializer):
                     source="author_id", queryset=User.objects.all()
                 )
 
-                def validate_id(self, value):
-                    try:
-                        is_int = str(int(value)) == value
-                    except ValueError:
-                        is_int = False
-                    if not is_int:
-                        raise serializers.ValidationError(
-                            "id '{}' should be an integer".format(value)
-                        )
-                    return value
-
                 type = serializers.CharField(
                     source="author._meta.verbose_name_plural"
                 )
@@ -90,7 +80,7 @@ class ArticleSerializer(serializers.Serializer):
 
             data = Data(source="*")
 
-        author = AuthorRelationship(source="*")
+        author = Author(source="*")
 
     relationships = RelationShips(source="*")
 
@@ -106,15 +96,25 @@ class ArticleSerializer(serializers.Serializer):
 class ArticleResponseSerializer(serializers.Serializer):
     """ Usage:
 
+        To read:
         >>> ArticleResponseSerializer(article).data
             {"links": {"self": "/articles/1"}, "data": {...}}
+
+        To create:
+        >>> serializer = ArticleResponseSerializer(data=request.data)
+        >>> serializer.is_valid(raise_exception=True)
+        >>> Article.objects.create(
+        ...     title=serializer.validated_data['title'],
+        ...     body=serializer.validated_data['body'],
+        ...     author_id=serializer.validated_data['author']['id'],
+        ... )
     """
 
     class Links(serializers.Serializer):
         self = serializers.SerializerMethodField()
 
         def get_self(self, obj):
-            return "/articles/{}".format(obj.id)
+            return reverse("article", kwargs={'article_id': obj.id})
 
     links = Links(source="*", required=False)
 

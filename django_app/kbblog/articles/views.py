@@ -1,3 +1,5 @@
+from django.core.urlresolvers import reverse
+
 from rest_framework import views
 from rest_framework.response import Response
 
@@ -7,7 +9,7 @@ from .serializers import (ArticleListResponseSerializer,
                           ArticleResponseSerializer)
 
 
-class ArticlesView(views.APIView):
+class ArticleListView(views.APIView):
     def get(self, request):
         articles = Article.objects.select_related('author').all()
         data = ArticleListResponseSerializer(articles).data
@@ -16,17 +18,17 @@ class ArticlesView(views.APIView):
     def post(self, request):
         serializer = ArticleResponseSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # .validated_data looks like: {"type": "articles",
-        #                              "title": "hello world",
-        #                              "body": "hello world",
-        #                              "author": {"id": "2",
-        #                                         "type": "users"}}
         article = Article.objects.create(
             title=serializer.validated_data['title'],
             body=serializer.validated_data['body'],
-            author_id=serializer.validated_data['author']['id'],
+            author=serializer.validated_data['author_id'],
         )
-        return Response(ArticleResponseSerializer(article).data)
+        return Response(
+            ArticleResponseSerializer(article).data,
+            status=201,
+            headers={'Location': reverse("article",
+                                         kwargs={'article_id': article.id})}
+        )
 
 
 class ArticleView(views.APIView):
