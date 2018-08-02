@@ -1,14 +1,16 @@
 from django.conf.urls import url
-from rest_framework import routers
-from .views import ArticleViewSet, UserViewSet, AuthorView
 
+from .views import ArticleView, ArticlesView
 
-router = routers.SimpleRouter()
-router.register(r'articles', ArticleViewSet)
-router.register(r'users', UserViewSet)
-
-urlpatterns = router.urls + [url(
-    regex=r'^articles/(?P<pk>[^/.]+)/relationships/(?P<related_field>[^/.]+)$',
-    view=AuthorView.as_view(),
-    name='article-user-relationships'
-)]
+urlpatterns = [
+    url(regex=r'^articles$',
+        view=ArticlesView.as_view(),
+        name="articles"),
+    # Firefox automatically appends a '/'
+    url(regex=r'^articles/$',
+        view=ArticlesView.as_view(),
+        name="articles"),
+    url(regex=r'^articles/(?P<article_id>\d+)$',
+        view=ArticleView.as_view(),
+        name="article"),
+]

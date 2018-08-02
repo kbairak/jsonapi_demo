@@ -1,21 +1,36 @@
-from django.contrib.auth.models import User
+from rest_framework import views
+from rest_framework.response import Response
 
-from rest_framework import viewsets
-from rest_framework_json_api.views import RelationshipView
+from articles.models import Article
 
-from .models import Article
-from .serializers import ArticleSerializer, UserSerializer
-
-
-class ArticleViewSet(viewsets.ModelViewSet):
-    queryset = Article.objects.all()
-    serializer_class = ArticleSerializer
+from .serializers import (ArticleListResponseSerializer,
+                          ArticleResponseSerializer)
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class ArticlesView(views.APIView):
+    def get(self, request):
+        articles = Article.objects.select_related('author').all()
+        data = ArticleListResponseSerializer(articles).data
+        return Response(data)
+
+    def post(self, request):
+        serializer = ArticleResponseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # .validated_data looks like: {"type": "articles",
+        #                              "title": "hello world",
+        #                              "body": "hello world",
+        #                              "author": {"id": "2",
+        #                                         "type": "users"}}
+        article = Article.objects.create(
+            title=serializer.validated_data['title'],
+            body=serializer.validated_data['body'],
+            author_id=serializer.validated_data['author']['id'],
+        )
+        return Response(ArticleResponseSerializer(article).data)
 
 
-class AuthorView(RelationshipView):
-    queryset = User.objects
+class ArticleView(views.APIView):
+    def get(self, request, article_id):
+        article = Article.objects.select_related('author').get(id=article_id)
+        data = ArticleResponseSerializer(article).data
+        return Response(data)
