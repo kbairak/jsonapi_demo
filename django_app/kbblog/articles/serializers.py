@@ -1,3 +1,5 @@
+from django.contrib.auth.models import User
+
 from rest_framework import serializers
 
 from articles.models import Article
@@ -29,7 +31,7 @@ class ArticleSerializer(serializers.Serializer):
 
     id = serializers.CharField(read_only=True)
 
-    type = serializers.CharField(default="articles")
+    type = serializers.CharField(source="_meta.verbose_name_plural")
 
     def validate_type(self, value):
         if value != "articles":
@@ -60,7 +62,9 @@ class ArticleSerializer(serializers.Serializer):
             links = Links(source="*", required=False)
 
             class Data(serializers.Serializer):
-                id = serializers.CharField()
+                id = serializers.PrimaryKeyRelatedField(
+                    source="author_id", queryset=User.objects.all()
+                )
 
                 def validate_id(self, value):
                     try:
@@ -73,7 +77,9 @@ class ArticleSerializer(serializers.Serializer):
                         )
                     return value
 
-                type = serializers.CharField(default="users")
+                type = serializers.CharField(
+                    source="author._meta.verbose_name_plural"
+                )
 
                 def validate_type(self, value):
                     if value != "users":
@@ -82,7 +88,7 @@ class ArticleSerializer(serializers.Serializer):
                         )
                     return value
 
-            data = Data(source="author")
+            data = Data(source="*")
 
         author = AuthorRelationship(source="*")
 
