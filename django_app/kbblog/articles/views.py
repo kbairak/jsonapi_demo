@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse
+from django.shortcuts import get_object_or_404
 
 from rest_framework import views
 from rest_framework.response import Response
@@ -33,6 +34,7 @@ class ArticleListView(views.APIView):
 
 class ArticleView(views.APIView):
     def get(self, request, article_id):
-        article = Article.objects.select_related('author').get(id=article_id)
+        article = get_object_or_404(Article.objects.select_related('author'),
+                                    id=article_id)
         data = ArticleResponseSerializer(article).data
         return Response(data)
